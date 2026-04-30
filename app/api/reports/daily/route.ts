@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
         unitPrice: saleItems.unitPrice,
         subtotal: saleItems.subtotal,
         productName: products.name,
+        imageUrl: products.imageUrl,
       })
       .from(saleItems)
       .innerJoin(products, eq(saleItems.productId, products.id))
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
         productSummary.set(item.productId, {
           productId: item.productId,
           productName: item.productName,
+          imageUrl: item.imageUrl,
           quantitySold: 0,
           totalValue: 0,
         })

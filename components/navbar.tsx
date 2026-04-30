@@ -1,12 +1,18 @@
 'use client'
 
 import { useTheme } from 'next-themes'
+import { useUser } from '@/hooks/useUser'
 import { Button } from '@/components/ui/button'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, LogOut, Menu } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export function Navbar() {
   const { theme, setTheme } = useTheme()
+  const { user, loading } = useUser()
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
 
   return (
     <nav className="border-b border-border bg-card">
@@ -22,26 +28,34 @@ export function Navbar() {
           </Link>
 
           <div className="flex items-center space-x-4">
-            <Link href="/">
-              <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/products">
-              <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
-                Produtos
-              </Button>
-            </Link>
-            <Link href="/sales">
-              <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
-                Vendas
-              </Button>
-            </Link>
-            <Link href="/reports">
-              <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
-                Relatórios
-              </Button>
-            </Link>
+            {user && (
+              <>
+                <Link href="/">
+                  <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
+                    Dashboard
+                  </Button>
+                </Link>
+                {user.role === 'event_manager' && (
+                  <Link href="/products">
+                    <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
+                      Produtos
+                    </Button>
+                  </Link>
+                )}
+                <Link href="/sales">
+                  <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
+                    Vendas
+                  </Button>
+                </Link>
+                {user.role === 'event_manager' && (
+                  <Link href="/reports">
+                    <Button variant="ghost" className="text-foreground hover:bg-secondary/50">
+                      Relatórios
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
 
             <Button
               size="icon"
@@ -55,6 +69,34 @@ export function Navbar() {
                 <Moon className="h-4 w-4 text-primary" />
               )}
             </Button>
+
+            {loading ? (
+              <Button disabled variant="outline" className="w-24">
+                ...
+              </Button>
+            ) : user ? (
+              <>
+                <span className="text-sm text-foreground/70 hidden sm:inline">
+                  {user.name}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push('/api/auth/logout')}
+                  className="border-primary/50"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={() => router.push('/api/auth/login')}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Login
+              </Button>
+            )}
           </div>
         </div>
       </div>

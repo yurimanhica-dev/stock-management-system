@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { items, notes } = body
+    const { items, notes, userId } = body
 
     if (!items || items.length === 0) {
       return NextResponse.json(
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
     const newSale = await db
       .insert(sales)
       .values({
+        userId: userId || null,
         totalAmount: totalAmount.toString(),
         notes: notes || null,
       })
@@ -63,12 +64,24 @@ export async function POST(request: NextRequest) {
 
     // Create sale items and update stock
     for (const item of items) {
+      // Create snapshot of product data
+      const snapshot = {
+        productId: item.productId,
+        productName: item.productName,
+        imageUrl: item.imageUrl,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        subtotal: item.subtotal,
+      }
+
       await db.insert(saleItems).values({
         saleId,
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: parseFloat(item.unitPrice),
         subtotal: parseFloat(item.subtotal),
+        snapshot: snapshot as any,
+        notes: item.notes || null,
       })
 
       // Update product stock

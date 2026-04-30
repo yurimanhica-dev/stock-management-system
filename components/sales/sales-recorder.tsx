@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Trash2, Send } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import Image from 'next/image'
 
 interface SaleItem {
   productId: number
@@ -29,6 +30,15 @@ interface SaleItem {
   quantity: number
   unitPrice: string
   subtotal: number
+  imageUrl?: string
+  snapshot?: {
+    productId: number
+    productName: string
+    imageUrl?: string
+    unitPrice: string
+    quantity: number
+    subtotal: number
+  }
 }
 
 export function SalesRecorder() {
@@ -67,6 +77,16 @@ export function SalesRecorder() {
 
     const subtotal = qty * parseFloat(product.unitPrice)
 
+    // Create snapshot of product data at time of sale
+    const snapshot = {
+      productId: product.id,
+      productName: product.name,
+      imageUrl: product.imageUrl || undefined,
+      unitPrice: product.unitPrice,
+      quantity: qty,
+      subtotal,
+    }
+
     setSaleItems([
       ...saleItems,
       {
@@ -75,6 +95,8 @@ export function SalesRecorder() {
         quantity: qty,
         unitPrice: product.unitPrice,
         subtotal,
+        imageUrl: product.imageUrl || undefined,
+        snapshot,
       },
     ])
 
@@ -94,12 +116,17 @@ export function SalesRecorder() {
 
     setLoading(true)
     try {
+      // Get current user
+      const userRes = await fetch('/api/users/me')
+      const user = await userRes.json()
+
       const response = await fetch('/api/sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: saleItems,
           notes: notes || null,
+          userId: user.id,
         }),
       })
 
@@ -112,6 +139,8 @@ export function SalesRecorder() {
         const productResponse = await fetch('/api/products')
         const data = await productResponse.json()
         setProducts(data.filter((p: Product) => p.stockQuantity > 0))
+      } else {
+        alert('Erro ao registar venda')
       }
     } catch (error) {
       console.error('Error submitting sale:', error)
@@ -130,7 +159,7 @@ export function SalesRecorder() {
           <CardTitle>Registar Nova Venda</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <Label htmlFor="product">Produto</Label>
               <Select value={selectedProduct} onValueChange={setSelectedProduct}>
@@ -146,6 +175,36 @@ export function SalesRecorder() {
                 </SelectContent>
               </Select>
             </div>
+
+            {selectedProduct && (() => {
+              const selected = products.find((p) => p.id === parseInt(selectedProduct))
+              return selected ? (
+                <div className="col-span-1 md:col-span-3 border border-border rounded-lg p-4 bg-secondary/5">
+                  <div className="flex gap-4 items-start">
+                    {selected.imageUrl && (
+                      <div className="relative w-24 h-24 flex-shrink-0">
+                        <Image
+                          src={selected.imageUrl}
+                          alt={selected.name}
+                          fill
+                          className="object-cover rounded"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-foreground">{selected.name}</h4>
+                      <p className="text-sm text-muted-foreground">{selected.category}</p>
+                      <p className="text-lg font-bold text-primary mt-2">
+                        €{parseFloat(selected.unitPrice).toFixed(2)}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Stock disponível: <span className="font-semibold">{selected.stockQuantity}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null
+            })()}
 
             <div>
               <Label htmlFor="quantity">Quantidade</Label>
@@ -191,6 +250,7 @@ export function SalesRecorder() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-secondary/20">
+                    <TableHead>Imagem</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead>Quantidade</TableHead>
                     <TableHead>Preço Unit.</TableHead>
@@ -201,6 +261,18 @@ export function SalesRecorder() {
                 <TableBody>
                   {saleItems.map((item, index) => (
                     <TableRow key={index} className="hover:bg-secondary/10">
+                      <TableCell>
+                        {item.imageUrl && (
+                          <div className="relative w-12 h-12">
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.productName}
+                              fill
+                              className="object-cover rounded"
+                            />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {item.productName}
                       </TableCell>

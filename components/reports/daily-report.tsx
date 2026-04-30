@@ -16,12 +16,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Download, Printer } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import Image from 'next/image'
 
 interface ProductSale {
   productId: number
   productName: string
   quantitySold: number
   totalValue: number
+  imageUrl?: string
 }
 
 interface StockItem {
@@ -207,6 +209,7 @@ export function DailyReport() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-primary/10">
+                    <TableHead>Imagem</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead>Quantidade</TableHead>
                     <TableHead>Valor Total</TableHead>
@@ -215,6 +218,18 @@ export function DailyReport() {
                 <TableBody>
                   {reportData.productsSold.map((product, index) => (
                     <TableRow key={index} className="border-gray-100">
+                      <TableCell>
+                        {product.imageUrl && (
+                          <div className="relative w-12 h-12">
+                            <Image
+                              src={product.imageUrl}
+                              alt={product.productName}
+                              fill
+                              className="object-cover rounded"
+                            />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {product.productName}
                       </TableCell>

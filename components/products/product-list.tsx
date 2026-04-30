@@ -10,17 +10,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Product } from '@/lib/db/schema'
 import { Trash2, Edit2, Plus } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface ProductListProps {
   onProductSelect?: (product: Product) => void
@@ -29,15 +24,7 @@ interface ProductListProps {
 export function ProductList({ onProductSelect }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [isOpen, setIsOpen] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    description: '',
-    unitPrice: '',
-    stockQuantity: '',
-  })
+  const router = useRouter()
 
   const fetchProducts = async () => {
     try {
@@ -55,36 +42,6 @@ export function ProductList({ onProductSelect }: ProductListProps) {
     fetchProducts()
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    try {
-      const method = editingId ? 'PUT' : 'POST'
-      const url = editingId ? `/api/products/${editingId}` : '/api/products'
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      if (response.ok) {
-        await fetchProducts()
-        setFormData({
-          name: '',
-          sku: '',
-          description: '',
-          unitPrice: '',
-          stockQuantity: '',
-        })
-        setEditingId(null)
-        setIsOpen(false)
-      }
-    } catch (error) {
-      console.error('Error saving product:', error)
-    }
-  }
-
   const handleDelete = async (id: number) => {
     if (!confirm('Tem a certeza que quer deletar este produto?')) return
 
@@ -96,18 +53,6 @@ export function ProductList({ onProductSelect }: ProductListProps) {
     }
   }
 
-  const handleEdit = (product: Product) => {
-    setEditingId(product.id)
-    setFormData({
-      name: product.name,
-      sku: product.sku,
-      description: product.description || '',
-      unitPrice: product.unitPrice,
-      stockQuantity: product.stockQuantity.toString(),
-    })
-    setIsOpen(true)
-  }
-
   if (loading) {
     return <div className="text-center py-8">Carregando produtos...</div>
   }
@@ -116,165 +61,97 @@ export function ProductList({ onProductSelect }: ProductListProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-foreground">Produtos</h2>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                setEditingId(null)
-                setFormData({
-                  name: '',
-                  sku: '',
-                  description: '',
-                  unitPrice: '',
-                  stockQuantity: '',
-                })
-              }}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Produto
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingId ? 'Editar Produto' : 'Novo Produto'}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Nome</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  value={formData.sku}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sku: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Descrição</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="unitPrice">Preço Unitário</Label>
-                <Input
-                  id="unitPrice"
-                  type="number"
-                  step="0.01"
-                  value={formData.unitPrice}
-                  onChange={(e) =>
-                    setFormData({ ...formData, unitPrice: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="stockQuantity">Quantidade em Stock</Label>
-                <Input
-                  id="stockQuantity"
-                  type="number"
-                  value={formData.stockQuantity}
-                  onChange={(e) =>
-                    setFormData({ ...formData, stockQuantity: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
-              >
-                {editingId ? 'Atualizar' : 'Criar'}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Link href="/products/new">
+          <Button className="bg-primary hover:bg-primary/90">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Produto
+          </Button>
+        </Link>
       </div>
 
-      <div className="rounded-lg border border-border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-secondary/20">
-              <TableHead>Nome</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Preço</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow
-                key={product.id}
-                className="hover:bg-secondary/10 cursor-pointer"
-                onClick={() => onProductSelect?.(product)}
-              >
-                <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>{product.sku}</TableCell>
-                <TableCell>
-                  €{parseFloat(product.unitPrice).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded text-sm ${
-                      product.stockQuantity > 0
-                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100'
-                        : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100'
-                    }`}
-                  >
-                    {product.stockQuantity}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEdit(product)
-                      }}
-                      className="border-primary/50 hover:bg-primary/10"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDelete(product.id)
-                      }}
-                      className="border-destructive/50 hover:bg-destructive/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Carregando produtos...
+        </div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Nenhum produto registado ainda
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-card"
+            >
+              {product.imageUrl && (
+                <div className="relative w-full h-48">
+                  <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="p-4 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-foreground">{product.name}</h3>
+                  <p className="text-sm text-muted-foreground">{product.sku}</p>
+                </div>
+
+                {product.category && (
+                  <p className="text-xs bg-primary/10 text-primary px-2 py-1 rounded w-fit">
+                    {product.category}
+                  </p>
+                )}
+
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Preço</p>
+                    <p className="text-lg font-bold text-primary">
+                      €{parseFloat(product.unitPrice).toFixed(2)}
+                    </p>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Stock</p>
+                    <p
+                      className={`text-lg font-bold ${
+                        product.stockQuantity > 0
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}
+                    >
+                      {product.stockQuantity}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Link href={`/products/${product.id}/edit`} className="flex-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full border-primary/50 hover:bg-primary/10"
+                    >
+                      <Edit2 className="w-4 h-4 mr-1" />
+                      Editar
+                    </Button>
+                  </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(product.id)}
+                    className="border-destructive/50 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

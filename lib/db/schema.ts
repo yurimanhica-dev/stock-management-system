@@ -6,7 +6,18 @@ import {
   decimal,
   integer,
   timestamp,
+  jsonb,
 } from 'drizzle-orm/pg-core'
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  auth0Id: varchar('auth0_id', { length: 255 }).notNull().unique(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('sales_person'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
 
 export const products = pgTable('products', {
   id: serial('id').primaryKey(),
@@ -15,12 +26,15 @@ export const products = pgTable('products', {
   description: text('description'),
   unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
   stockQuantity: integer('stock_quantity').notNull().default(0),
+  imageUrl: text('image_url'),
+  category: varchar('category', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 })
 
 export const sales = pgTable('sales', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id),
   saleDate: timestamp('sale_date').defaultNow(),
   totalAmount: decimal('total_amount', { precision: 12, scale: 2 }).notNull(),
   notes: text('notes'),
@@ -38,10 +52,14 @@ export const saleItems = pgTable('sale_items', {
   quantity: integer('quantity').notNull(),
   unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
   subtotal: decimal('subtotal', { precision: 12, scale: 2 }).notNull(),
+  snapshot: jsonb('snapshot'),
+  notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
 // Types
+export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert
 export type Product = typeof products.$inferSelect
 export type NewProduct = typeof products.$inferInsert
 export type Sale = typeof sales.$inferSelect
