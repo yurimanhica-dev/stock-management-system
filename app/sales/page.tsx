@@ -1,11 +1,9 @@
+'use client'
+
 import { SalesRecorder } from '@/components/sales/sales-recorder'
+import { AuthGuard } from '@/components/auth-guard'
 
-export const metadata = {
-  title: 'Registar Vendas - Stock Manager',
-  description: 'Registre suas vendas e atualize automaticamente o stock',
-}
-
-export default function SalesPage() {
+function SalesContent() {
   return (
     <div className="space-y-6">
       <div>
@@ -17,5 +15,13 @@ export default function SalesPage() {
 
       <SalesRecorder />
     </div>
+  )
+}
+
+export default function SalesPage() {
+  return (
+    <AuthGuard>
+      <SalesContent />
+    </AuthGuard>
   )
 }

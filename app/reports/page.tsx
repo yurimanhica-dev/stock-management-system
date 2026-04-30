@@ -1,11 +1,9 @@
+'use client'
+
 import { DailyReport } from '@/components/reports/daily-report'
+import { AuthGuard } from '@/components/auth-guard'
 
-export const metadata = {
-  title: 'Relatórios - Stock Manager',
-  description: 'Visualize vendas, stock e receitas com opção de imprimir e PDF',
-}
-
-export default function ReportsPage() {
+function ReportsContent() {
   return (
     <div className="space-y-6">
       <div>
@@ -17,5 +15,13 @@ export default function ReportsPage() {
 
       <DailyReport />
     </div>
+  )
+}
+
+export default function ReportsPage() {
+  return (
+    <AuthGuard>
+      <ReportsContent />
+    </AuthGuard>
   )
 }

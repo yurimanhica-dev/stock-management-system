@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
+import bcrypt from 'bcryptjs'
 
-const sql = neon(process.env.DATABASE_URL!)
+// Get SQL instance
+function getSql() {
+  const dbUrl = process.env.DATABASE_URL
+  if (!dbUrl) {
+    throw new Error('Database URL not configured')
+  }
+  return neon(dbUrl)
+}
 
 // Helper to verify admin
 async function verifyAdmin(token: string) {
   try {
+    const sql = getSql()
     const sessions = await sql`
       SELECT u.id, u.role FROM sessions s
       JOIN users u ON s.user_id = u.id
@@ -35,6 +44,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
 
+    const sql = getSql()
     const users = await sql`
       SELECT id, name, email, role, is_active, created_at FROM users ORDER BY created_at DESC
     `
@@ -71,22 +81,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const sql = getSql()
+
     // Check if email already exists
     const existing = await sql`SELECT id FROM users WHERE email = ${email}`
+
     if (existing.length > 0) {
       return NextResponse.json(
-        { error: 'Email já existe' },
+        { error: 'Email já registado' },
         { status: 400 }
       )
     }
 
-    const result = await sql`
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Create user
+    const newUser = await sql`
       INSERT INTO users (name, email, password, role, is_active)
-      VALUES (${name}, ${email}, ${password}, ${role}, true)
-      RETURNING id, name, email, role, is_active
+      VALUES (${name}, ${email}, ${hashedPassword}, ${role}, true)
+      RETURNING id, name, email, role, is_active, created_at
     `
 
-    return NextResponse.json(result[0], { status: 201 })
+    return NextResponse.json(newUser[0], { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)
     return NextResponse.json(
@@ -109,21 +126,63 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
 
-    const { id, name, email, role, is_active, password } = await request.json()
+    const { id, name, email, password, role, is_active } = await request.json()
 
     if (!id) {
-      return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'ID do utilizador é obrigatório' },
+        { status: 400 }
+      )
     }
 
-    let updateQuery = `UPDATE users SET name = '${name}', email = '${email}', role = '${role}', is_active = ${is_active}`
+    const sql = getSql()
+
+    let updateQuery = `UPDATE users SET `
+    const updates: string[] = []
+    const params: any[] = []
+
+    if (name) {
+      updates.push(`name = ${name}`)
+    }
+    if (email) {
+      updates.push(`email = ${email}`)
+    }
     if (password) {
-      updateQuery += `, password = '${password}'`
+      const hashedPassword = await bcrypt.hash(password, 10)
+      updates.push(`password = ${hashedPassword}`)
     }
-    updateQuery += ` WHERE id = ${id} RETURNING id, name, email, role, is_active`
+    if (role) {
+      updates.push(`role = ${role}`)
+    }
+    if (is_active !== undefined) {
+      updates.push(`is_active = ${is_active}`)
+    }
 
-    const result = await sql([updateQuery])
+    if (updates.length === 0) {
+      return NextResponse.json(
+        { error: 'Nenhum campo para atualizar' },
+        { status: 400 }
+      )
+    }
 
-    return NextResponse.json(result[0])
+    const updated = await sql`
+      UPDATE users 
+      SET name = COALESCE(${name || null}, name),
+          email = COALESCE(${email || null}, email),
+          role = COALESCE(${role || null}, role),
+          is_active = COALESCE(${is_active !== undefined ? is_active : null}, is_active)
+      WHERE id = ${id}
+      RETURNING id, name, email, role, is_active, created_at
+    `
+
+    if (updated.length === 0) {
+      return NextResponse.json(
+        { error: 'Utilizador não encontrado' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(updated[0])
   } catch (error) {
     console.error('Error updating user:', error)
     return NextResponse.json(
@@ -133,7 +192,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Remove user
+// DELETE - Delete user
 export async function DELETE(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
@@ -146,23 +205,28 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
 
-    const { id } = await request.json()
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('id')
 
-    if (!id) {
-      return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 })
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'ID do utilizador é obrigatório' },
+        { status: 400 }
+      )
     }
 
-    // Prevent deleting yourself
-    if (id === admin.id) {
+    // Prevent admin from deleting themselves
+    if (parseInt(userId) === admin.id) {
       return NextResponse.json(
         { error: 'Não pode deletar a sua própria conta' },
         { status: 400 }
       )
     }
 
-    await sql`DELETE FROM users WHERE id = ${id}`
+    const sql = getSql()
+    await sql`DELETE FROM users WHERE id = ${parseInt(userId)}`
 
-    return NextResponse.json({ message: 'Utilizador deletado' })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting user:', error)
     return NextResponse.json(

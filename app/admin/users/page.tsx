@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Trash2, Edit2, Plus, CheckCircle2, XCircle } from 'lucide-react'
+import { AuthGuard } from '@/components/auth-guard'
 
 interface User {
   id: number
@@ -31,7 +32,7 @@ interface User {
   created_at: string
 }
 
-export default function AdminUsersPage() {
+function AdminUsersContent() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
@@ -45,36 +46,12 @@ export default function AdminUsersPage() {
   const router = useRouter()
 
   useEffect(() => {
-    checkAuth()
+    fetchUsers()
   }, [])
 
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token')
-    const user = localStorage.getItem('user')
-
-    if (!token || !user) {
-      router.push('/login')
-      return
-    }
-
+  const fetchUsers = async () => {
     try {
-      const userData = JSON.parse(user)
-      if (userData.role !== 'admin') {
-        router.push('/')
-        return
-      }
-
-      await fetchUsers(token)
-    } catch {
-      router.push('/login')
-    }
-  }
-
-  const fetchUsers = async (token: string) => {
-    try {
-      const response = await fetch('/api/admin/users', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const response = await fetch('/api/admin/users')
 
       if (response.ok) {
         const data = await response.json()
@@ -325,5 +302,13 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function AdminUsersPage() {
+  return (
+    <AuthGuard requiredRole="admin">
+      <AdminUsersContent />
+    </AuthGuard>
   )
 }
