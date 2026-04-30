@@ -31,7 +31,7 @@ export async function PUT(
   try {
     const id = parseInt(params.id)
     const body = await request.json()
-    const { name, sku, description, unitPrice, stockQuantity } = body
+    const { name, sku, description, unitPrice, stockQuantity, imageUrl, category } = body
 
     const updated = await db
       .update(products)
@@ -41,6 +41,8 @@ export async function PUT(
         description: description !== undefined ? description : undefined,
         unitPrice: unitPrice ? parseFloat(unitPrice) : undefined,
         stockQuantity: stockQuantity !== undefined ? parseInt(stockQuantity) : undefined,
+        imageUrl: imageUrl || undefined,
+        category: category || undefined,
       })
       .where(eq(products.id, id))
       .returning()

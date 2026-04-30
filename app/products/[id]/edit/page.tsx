@@ -1,29 +1,51 @@
-import { ProductForm } from '@/components/products/product-form'
-import { neon } from '@neondatabase/serverless'
+'use client'
 
-export const metadata = {
-  title: 'Editar Produto | Stock Manager',
-  description: 'Editar um produto existente',
+import { ProductForm } from '@/components/products/product-form'
+import { AuthGuard } from '@/components/auth-guard'
+import { useEffect, useState } from 'react'
+
+interface Product {
+  id: number
+  name: string
+  sku: string
+  description: string
+  unitPrice: string
+  stockQuantity: string
+  imageUrl: string
+  category: string
 }
 
-export default async function EditProductPage({
-  params,
-}: {
-  params: { id: string }
-}) {
-  const dbUrl = process.env.DATABASE_URL
-  if (!dbUrl) throw new Error('Database URL not configured')
+function EditProductContent({ productId }: { productId: string }) {
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const db = neon(dbUrl)
-  const product = await db`
-    SELECT * FROM products WHERE id = ${parseInt(params.id)}
-  `
+  useEffect(() => {
+    fetchProduct()
+  }, [productId])
 
-  if (product.length === 0) {
-    return <div className="text-center py-8">Produto não encontrado</div>
+  const fetchProduct = async () => {
+    try {
+      const response = await fetch(`/api/products/${productId}`)
+      if (!response.ok) {
+        setProduct(null)
+      } else {
+        const data = await response.json()
+        setProduct(data)
+      }
+    } catch {
+      setProduct(null)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const p = product[0]
+  if (loading) {
+    return <div className="text-center py-8">Carregando...</div>
+  }
+
+  if (!product) {
+    return <div className="text-center py-8">Produto não encontrado</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -34,18 +56,19 @@ export default async function EditProductPage({
         </p>
       </div>
 
-      <ProductForm
-        initialData={{
-          id: p.id,
-          name: p.name,
-          sku: p.sku,
-          description: p.description,
-          unitPrice: p.unit_price,
-          stockQuantity: p.stock_quantity.toString(),
-          imageUrl: p.image_url,
-          category: p.category,
-        }}
-      />
+      <ProductForm initialData={product} />
     </div>
+  )
+}
+
+export default function EditProductPage({
+  params,
+}: {
+  params: { id: string }
+}) {
+  return (
+    <AuthGuard>
+      <EditProductContent productId={params.id} />
+    </AuthGuard>
   )
 }

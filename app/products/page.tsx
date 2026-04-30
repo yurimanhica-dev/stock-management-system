@@ -1,11 +1,9 @@
+'use client'
+
 import { ProductList } from '@/components/products/product-list'
+import { AuthGuard } from '@/components/auth-guard'
 
-export const metadata = {
-  title: 'Produtos - Stock Manager',
-  description: 'Gerencie seu catálogo de produtos',
-}
-
-export default function ProductsPage() {
+function ProductsContent() {
   return (
     <div className="space-y-6">
       <div>
@@ -17,5 +15,13 @@ export default function ProductsPage() {
 
       <ProductList />
     </div>
+  )
+}
+
+export default function ProductsPage() {
+  return (
+    <AuthGuard>
+      <ProductsContent />
+    </AuthGuard>
   )
 }

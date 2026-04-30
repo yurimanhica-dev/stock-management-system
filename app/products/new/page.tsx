@@ -1,11 +1,9 @@
+'use client'
+
 import { ProductForm } from '@/components/products/product-form'
+import { AuthGuard } from '@/components/auth-guard'
 
-export const metadata = {
-  title: 'Criar Novo Produto | Stock Manager',
-  description: 'Criar um novo produto no sistema',
-}
-
-export default function NewProductPage() {
+function NewProductContent() {
   return (
     <div className="space-y-6">
       <div>
@@ -17,5 +15,13 @@ export default function NewProductPage() {
 
       <ProductForm />
     </div>
+  )
+}
+
+export default function NewProductPage() {
+  return (
+    <AuthGuard>
+      <NewProductContent />
+    </AuthGuard>
   )
 }

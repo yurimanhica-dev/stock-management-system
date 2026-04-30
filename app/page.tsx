@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { TrendingUp, ShoppingCart, DollarSign, Package } from 'lucide-react'
+import { AuthGuard } from '@/components/auth-guard'
 
 interface SalesData {
   hour: string
@@ -25,8 +25,7 @@ const COLORS = [
   '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6'
 ]
 
-export default function DashboardPage() {
-  const router = useRouter()
+function DashboardContent() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [salesByHour, setSalesByHour] = useState<SalesData[]>([])
@@ -39,26 +38,16 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token')
     const userStr = localStorage.getItem('user')
-
-    if (!token || !userStr) {
-      router.push('/login')
-      return
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr))
+      } catch {
+        setUser(null)
+      }
     }
-
-    try {
-      const userData = JSON.parse(userStr)
-      setUser(userData)
-      await fetchDashboardData()
-    } catch {
-      router.push('/login')
-    }
-  }
+    fetchDashboardData()
+  }, [])
 
   const fetchDashboardData = async () => {
     try {
@@ -137,16 +126,12 @@ export default function DashboardPage() {
     )
   }
 
-  if (!user) {
-    return null
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">
-          Bem-vindo, {user.name}
+          Bem-vindo, {user?.name || 'Utilizador'}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {new Date().toLocaleDateString('pt-PT', {
@@ -328,5 +313,13 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      <DashboardContent />
+    </AuthGuard>
   )
 }
