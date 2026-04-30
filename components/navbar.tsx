@@ -1,18 +1,38 @@
 'use client'
 
 import { useTheme } from 'next-themes'
-import { useUser } from '@/hooks/useUser'
 import { Button } from '@/components/ui/button'
-import { Moon, Sun, LogOut, Menu } from 'lucide-react'
+import { Moon, Sun, LogOut, Settings } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
+interface User {
+  id: number
+  name: string
+  email: string
+  role: 'admin' | 'event_manager' | 'sales_person'
+}
 
 export function Navbar() {
   const { theme, setTheme } = useTheme()
-  const { user, loading } = useUser()
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr))
+      } catch {
+        localStorage.removeItem('user')
+        localStorage.removeItem('token')
+      }
+    }
+    setLoading(false)
+  }, [])
 
   return (
     <nav className="border-b border-border bg-card">
@@ -79,10 +99,21 @@ export function Navbar() {
                 <span className="text-sm text-foreground/70 hidden sm:inline">
                   {user.name}
                 </span>
+                {user.role === 'admin' && (
+                  <Link href="/admin/users">
+                    <Button variant="outline" size="sm" className="border-primary/50">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push('/api/auth/logout')}
+                  onClick={() => {
+                    localStorage.removeItem('token')
+                    localStorage.removeItem('user')
+                    router.push('/login')
+                  }}
                   className="border-primary/50"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
@@ -91,7 +122,7 @@ export function Navbar() {
               </>
             ) : (
               <Button
-                onClick={() => router.push('/api/auth/login')}
+                onClick={() => router.push('/login')}
                 className="bg-primary hover:bg-primary/90"
               >
                 Login

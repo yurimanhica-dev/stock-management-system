@@ -1,142 +1,332 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Package, ShoppingCart, BarChart3, Settings } from 'lucide-react'
+'use client'
 
-export const metadata = {
-  title: 'Dashboard - Stock Manager',
-  description: 'Visualize o estado atual do seu stock e vendas',
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { TrendingUp, ShoppingCart, DollarSign, Package } from 'lucide-react'
+
+interface SalesData {
+  hour: string
+  sales: number
+  revenue: number
 }
 
-export default function Dashboard() {
-  const features = [
-    {
-      title: 'Gestão de Produtos',
-      description: 'Crie, edite e gerencie seus produtos com preços e quantidades',
-      href: '/products',
-      icon: Package,
-      color: 'from-blue-500 to-blue-600',
-    },
-    {
-      title: 'Registar Vendas',
-      description: 'Registre vendas rapidamente com atualização automática de stock',
-      href: '/sales',
-      icon: ShoppingCart,
-      color: 'from-green-500 to-green-600',
-    },
-    {
-      title: 'Relatórios Diários',
-      description: 'Visualize vendas, stock e receitas com opção de imprimir e PDF',
-      href: '/reports',
-      icon: BarChart3,
-      color: 'from-purple-500 to-purple-600',
-    },
-  ]
+interface ProductSales {
+  name: string
+  quantity: number
+  revenue: number
+  color: string
+}
+
+const COLORS = [
+  '#a855f7', '#d946ef', '#ec4899', '#f43f5e', '#f97316',
+  '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6',
+  '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6'
+]
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const [salesByHour, setSalesByHour] = useState<SalesData[]>([])
+  const [productSales, setProductSales] = useState<ProductSales[]>([])
+  const [stats, setStats] = useState({
+    totalSales: 0,
+    totalRevenue: 0,
+    productsCount: 0,
+    averageTicket: 0,
+  })
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token')
+    const userStr = localStorage.getItem('user')
+
+    if (!token || !userStr) {
+      router.push('/login')
+      return
+    }
+
+    try {
+      const userData = JSON.parse(userStr)
+      setUser(userData)
+      await fetchDashboardData()
+    } catch {
+      router.push('/login')
+    }
+  }
+
+  const fetchDashboardData = async () => {
+    try {
+      // Generate sales by hour
+      const hourlyData: SalesData[] = []
+
+      // Initialize 24 hours
+      for (let h = 0; h < 24; h++) {
+        hourlyData.push({
+          hour: `${h.toString().padStart(2, '0')}:00`,
+          sales: 0,
+          revenue: 0,
+        })
+      }
+
+      // Simulate data for demo purposes
+      const demoSales = [
+        { hour: 8, sales: 5, revenue: 150 },
+        { hour: 9, sales: 8, revenue: 240 },
+        { hour: 10, sales: 12, revenue: 360 },
+        { hour: 11, sales: 15, revenue: 450 },
+        { hour: 12, sales: 20, revenue: 600 },
+        { hour: 13, sales: 18, revenue: 540 },
+        { hour: 14, sales: 14, revenue: 420 },
+        { hour: 15, sales: 16, revenue: 480 },
+        { hour: 16, sales: 19, revenue: 570 },
+        { hour: 17, sales: 22, revenue: 660 },
+        { hour: 18, sales: 25, revenue: 750 },
+        { hour: 19, sales: 28, revenue: 840 },
+        { hour: 20, sales: 24, revenue: 720 },
+        { hour: 21, sales: 20, revenue: 600 },
+        { hour: 22, sales: 15, revenue: 450 },
+      ]
+
+      demoSales.forEach(({ hour, sales, revenue }) => {
+        hourlyData[hour] = { ...hourlyData[hour], sales, revenue }
+      })
+
+      setSalesByHour(hourlyData)
+
+      // Generate product sales
+      const demoProducts: ProductSales[] = [
+        { name: 'Coca-Cola', quantity: 45, revenue: 135, color: COLORS[0] },
+        { name: 'Agua Natural', quantity: 38, revenue: 76, color: COLORS[1] },
+        { name: 'Suco Natural', quantity: 32, revenue: 128, color: COLORS[2] },
+        { name: 'Cafe', quantity: 28, revenue: 112, color: COLORS[3] },
+        { name: 'Cha Verde', quantity: 22, revenue: 66, color: COLORS[4] },
+      ]
+
+      setProductSales(demoProducts)
+
+      // Calculate stats
+      const totalSales = demoSales.reduce((sum, s) => sum + s.sales, 0)
+      const totalRevenue = demoSales.reduce((sum, s) => sum + s.revenue, 0)
+      const productsCount = demoProducts.length
+      const avgTicket = totalSales > 0 ? totalRevenue / totalSales : 0
+
+      setStats({
+        totalSales,
+        totalRevenue,
+        productsCount,
+        averageTicket: parseFloat(avgTicket.toFixed(2)),
+      })
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Carregando dashboard...</p>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-          Sistema de Gestão de Stock
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">
+          Bem-vindo, {user.name}
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Gerencie seus produtos, registre vendas e gere relatórios diários de forma eficiente e profissional.
+        <p className="text-sm text-muted-foreground mt-1">
+          {new Date().toLocaleDateString('pt-PT', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
         </p>
       </div>
 
-      {/* Features Grid */}
-      <div className="grid md:grid-cols-3 gap-6">
-        {features.map((feature) => {
-          const Icon = feature.icon
-          return (
-            <Link key={feature.href} href={feature.href}>
-              <Card className="h-full hover:shadow-lg hover:border-primary/50 transition-all duration-300 cursor-pointer">
-                <CardHeader>
-                  <div
-                    className={`w-12 h-12 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4`}
-                  >
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-foreground">
-                    {feature.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            </Link>
-          )
-        })}
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-foreground">Sobre o Sistema</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-muted-foreground">
-            <p>
-              Um sistema completo de gestão de stock desenvolvido com tecnologia moderna que permite:
-            </p>
-            <ul className="space-y-2 ml-4">
-              <li>✓ Gerir catálogo de produtos com SKU único</li>
-              <li>✓ Registar vendas com múltiplos itens</li>
-              <li>✓ Atualização automática de stock</li>
-              <li>✓ Relatórios diários completos</li>
-              <li>✓ Impressão e exportação em PDF</li>
-              <li>✓ Tema claro e escuro</li>
-            </ul>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-primary/20 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total de Vendas</p>
+                <p className="text-3xl font-bold text-foreground mt-2">
+                  {stats.totalSales}
+                </p>
+              </div>
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <ShoppingCart className="w-6 h-6 text-primary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-foreground">Tecnologia</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-muted-foreground">
-            <p>Construído com as melhores tecnologias:</p>
-            <ul className="space-y-2 ml-4">
-              <li>✓ Next.js 15 - Framework React moderno</li>
-              <li>✓ PostgreSQL via Neon - Banco de dados robusto</li>
-              <li>✓ Drizzle ORM - Query builder type-safe</li>
-              <li>✓ shadcn/ui - Componentes acessíveis</li>
-              <li>✓ Tailwind CSS - Estilo responsivo</li>
-              <li>✓ TypeScript - Type safety garantido</li>
-            </ul>
+        <Card className="border-primary/20 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Receita Total</p>
+                <p className="text-3xl font-bold text-foreground mt-2">
+                  €{stats.totalRevenue}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+                <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/20 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Produtos Distintos</p>
+                <p className="text-3xl font-bold text-foreground mt-2">
+                  {stats.productsCount}
+                </p>
+              </div>
+              <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-primary/20 overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Ticket Médio</p>
+                <p className="text-3xl font-bold text-foreground mt-2">
+                  €{stats.averageTicket}
+                </p>
+              </div>
+              <div className="p-3 bg-amber-100 dark:bg-amber-900 rounded-lg">
+                <TrendingUp className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* CTA Section */}
-      <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-8 text-center border border-primary/20">
-        <h2 className="text-2xl font-bold text-foreground mb-4">
-          Pronto para começar?
-        </h2>
-        <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-          Comece a registar seus produtos e acompanhe o seu stock em tempo real.
-        </p>
-        <div className="flex gap-4 justify-center flex-wrap">
-          <Link href="/products">
-            <Button size="lg" className="bg-primary hover:bg-primary/90">
-              <Package className="w-5 h-5 mr-2" />
-              Ir para Produtos
-            </Button>
-          </Link>
-          <Link href="/sales">
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-primary/50 hover:bg-primary/10"
-            >
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              Registar Venda
-            </Button>
-          </Link>
-        </div>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Sales by Hour */}
+        <Card className="lg:col-span-2 border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-lg">Vendas por Hora</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={salesByHour}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-slate-700" />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fontSize: 12 }}
+                  className="text-muted-foreground"
+                />
+                <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1f2937',
+                    border: '1px solid #374151',
+                  }}
+                  labelStyle={{ color: '#f3f4f6' }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="sales"
+                  stroke="#a855f7"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Vendas"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={false}
+                  name="Receita (€)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Top Products */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-lg">Produtos Top</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={productSales}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="quantity"
+                >
+                  {productSales.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Products Revenue Bar Chart */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg">Receita por Produto</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={productSales}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-slate-700" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+              <YAxis tick={{ fontSize: 12 }} className="text-muted-foreground" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#1f2937',
+                  border: '1px solid #374151',
+                }}
+                labelStyle={{ color: '#f3f4f6' }}
+              />
+              <Legend />
+              <Bar dataKey="quantity" fill="#a855f7" name="Quantidade Vendida" />
+              <Bar dataKey="revenue" fill="#10b981" name="Receita (€)" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </div>
   )
 }
