@@ -1,89 +1,93 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
-import { FileUpload } from '@/components/file-upload'
-import Image from 'next/image'
-import { AlertCircle, Check } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { FileUpload } from "@/components/file-upload";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, Check } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface ProductFormProps {
   initialData?: {
-    id?: number
-    name: string
-    sku: string
-    description?: string
-    unitPrice: string
-    stockQuantity: string
-    imageUrl?: string
-    category?: string
-  }
+    id?: string;
+    name: string;
+    sku: string;
+    description?: string;
+    unitPrice: string;
+    stockQuantity: string;
+    imageUrl?: string;
+    category?: string;
+  };
 }
 
 export function ProductForm({ initialData }: ProductFormProps) {
-  const [loading, setLoading] = useState(false)
-  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || '')
-  const [skuError, setSkuError] = useState('')
-  const [success, setSuccess] = useState(false)
-  const router = useRouter()
+  const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState(initialData?.imageUrl || "");
+  const [skuError, setSkuError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
 
   const handleCheckSku = async (sku: string) => {
-    if (!sku) return
+    if (!sku) return;
     try {
-      const res = await fetch(`/api/products/check-sku?sku=${sku}`)
-      const data = await res.json()
+      const res = await fetch(`/api/products/check-sku?sku=${sku}`);
+      const data = await res.json();
       if (data.exists && !initialData?.id) {
-        setSkuError('SKU já existe no sistema')
+        setSkuError("SKU já existe no sistema");
       } else {
-        setSkuError('')
+        setSkuError("");
       }
     } catch (error) {
-      console.error('Error checking SKU:', error)
+      console.error("Error checking SKU:", error);
     }
-  }
+  };
 
   async function handleSubmit(formData: FormData) {
     if (skuError || !imageUrl) {
-      if (!imageUrl) alert('Selecione uma imagem para o produto')
-      return
+      if (!imageUrl) alert("Selecione uma imagem para o produto");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
       const data = {
-        name: formData.get('name'),
-        sku: formData.get('sku'),
-        description: formData.get('description'),
-        unitPrice: parseFloat(formData.get('unitPrice') as string),
-        stockQuantity: parseInt(formData.get('stockQuantity') as string),
+        name: formData.get("name"),
+        sku: formData.get("sku"),
+        description: formData.get("description"),
+        unitPrice: parseFloat(formData.get("unitPrice") as string),
+        stockQuantity: parseInt(formData.get("stockQuantity") as string),
         imageUrl,
-        category: formData.get('category'),
-      }
+        category: formData.get("category"),
+      };
 
       const url = initialData?.id
         ? `/api/products/${initialData.id}`
-        : '/api/products'
-      const method = initialData?.id ? 'PATCH' : 'POST'
+        : "/api/products";
+      const method = initialData?.id ? "PATCH" : "POST";
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      })
+      });
 
-      if (!res.ok) throw new Error('Failed to save product')
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("API ERROR:", errorText);
+        throw new Error(errorText || "Failed to save product");
+      }
 
-      setSuccess(true)
+      setSuccess(true);
       setTimeout(() => {
-        router.push('/products')
-        router.refresh()
-      }, 1500)
+        router.push("/products");
+        router.refresh();
+      }, 1500);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Erro ao guardar produto')
+      alert(error instanceof Error ? error.message : "Erro ao guardar produto");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -93,7 +97,9 @@ export function ProductForm({ initialData }: ProductFormProps) {
         <div className="flex items-center gap-2 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
           <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
           <span className="text-green-800 dark:text-green-200">
-            {initialData?.id ? 'Produto atualizado com sucesso!' : 'Produto criado com sucesso!'}
+            {initialData?.id
+              ? "Produto atualizado com sucesso!"
+              : "Produto criado com sucesso!"}
           </span>
         </div>
       )}
@@ -206,7 +212,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setImageUrl('')}
+                  onClick={() => setImageUrl("")}
                   className="text-sm text-red-600 dark:text-red-400 hover:underline self-start"
                 >
                   Remover imagem
@@ -217,7 +223,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
             {!imageUrl && (
               <FileUpload
                 onUploadComplete={(url) => {
-                  setImageUrl(url)
+                  setImageUrl(url);
                 }}
               />
             )}
@@ -230,17 +236,21 @@ export function ProductForm({ initialData }: ProductFormProps) {
             disabled={loading || !!skuError || !imageUrl}
             className="bg-primary hover:bg-primary/90 disabled:opacity-50"
           >
-            {loading ? 'Guardando...' : initialData?.id ? 'Atualizar' : 'Criar Produto'}
+            {loading
+              ? "Guardando..."
+              : initialData?.id
+                ? "Atualizar"
+                : "Criar Produto"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/products')}
+            onClick={() => router.push("/products")}
           >
             Cancelar
           </Button>
         </div>
       </form>
     </div>
-  )
+  );
 }

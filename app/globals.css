@@ -1,82 +1,78 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.98 0.001 0);
-  --foreground: oklch(0.13 0.02 280);
+  --background: oklch(0.985 0.002 260);
+  --foreground: oklch(0.18 0.03 270);
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.02 280);
+  --card-foreground: oklch(0.18 0.03 270);
+
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.02 280);
-  --primary: oklch(0.55 0.23 280);
-  --primary-foreground: oklch(0.98 0.001 0);
-  --secondary: oklch(0.92 0.08 280);
-  --secondary-foreground: oklch(0.13 0.02 280);
-  --muted: oklch(0.92 0.02 280);
-  --muted-foreground: oklch(0.5 0.05 280);
-  --accent: oklch(0.65 0.2 280);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.62 0.22 29.23);
-  --destructive-foreground: oklch(0.98 0.001 0);
-  --border: oklch(0.92 0.03 280);
-  --input: oklch(0.95 0.02 280);
-  --ring: oklch(0.65 0.2 280);
-  --chart-1: oklch(0.55 0.23 280);
-  --chart-2: oklch(0.65 0.2 280);
-  --chart-3: oklch(0.45 0.18 280);
-  --chart-4: oklch(0.7 0.15 280);
-  --chart-5: oklch(0.35 0.25 280);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.98 0.001 0);
-  --sidebar-foreground: oklch(0.13 0.02 280);
-  --sidebar-primary: oklch(0.55 0.23 280);
-  --sidebar-primary-foreground: oklch(0.98 0.001 0);
-  --sidebar-accent: oklch(0.65 0.2 280);
-  --sidebar-accent-foreground: oklch(0.98 0.001 0);
-  --sidebar-border: oklch(0.92 0.03 280);
-  --sidebar-ring: oklch(0.65 0.2 280);
+  --popover-foreground: oklch(0.18 0.03 270);
+
+  /* 🔥 Roxo mais vibrante e moderno */
+  --primary: oklch(0.62 0.25 275);
+  --primary-foreground: oklch(0.98 0.002 260);
+
+  /* 🧊 Secondary mais neutro (evita conflito com primary) */
+  --secondary: oklch(0.94 0.01 260);
+  --secondary-foreground: oklch(0.25 0.03 270);
+
+  --muted: oklch(0.95 0.01 260);
+  --muted-foreground: oklch(0.55 0.04 270);
+
+  /* ✨ Accent com leve toque azul (quebra monotonia do roxo) */
+  --accent: oklch(0.7 0.18 250);
+  --accent-foreground: oklch(0.98 0.002 260);
+
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0.002 260);
+
+  --border: oklch(0.9 0.02 260);
+  --input: oklch(0.96 0.01 260);
+  --ring: oklch(0.62 0.25 275);
+
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: oklch(0.12 0.02 280);
-  --foreground: oklch(0.95 0.01 280);
-  --card: oklch(0.15 0.03 280);
-  --card-foreground: oklch(0.95 0.01 280);
-  --popover: oklch(0.15 0.03 280);
-  --popover-foreground: oklch(0.95 0.01 280);
-  --primary: oklch(0.65 0.2 280);
-  --primary-foreground: oklch(0.12 0.02 280);
-  --secondary: oklch(0.25 0.08 280);
-  --secondary-foreground: oklch(0.95 0.01 280);
-  --muted: oklch(0.25 0.08 280);
-  --muted-foreground: oklch(0.65 0.12 280);
-  --accent: oklch(0.7 0.25 280);
-  --accent-foreground: oklch(0.12 0.02 280);
-  --destructive: oklch(0.62 0.22 29.23);
-  --destructive-foreground: oklch(0.95 0.01 280);
-  --border: oklch(0.25 0.05 280);
-  --input: oklch(0.2 0.04 280);
-  --ring: oklch(0.65 0.2 280);
-  --chart-1: oklch(0.65 0.2 280);
-  --chart-2: oklch(0.7 0.25 280);
-  --chart-3: oklch(0.55 0.23 280);
-  --chart-4: oklch(0.75 0.2 280);
-  --chart-5: oklch(0.45 0.22 280);
-  --sidebar: oklch(0.15 0.03 280);
-  --sidebar-foreground: oklch(0.95 0.01 280);
-  --sidebar-primary: oklch(0.65 0.2 280);
-  --sidebar-primary-foreground: oklch(0.95 0.01 280);
-  --sidebar-accent: oklch(0.7 0.25 280);
-  --sidebar-accent-foreground: oklch(0.12 0.02 280);
-  --sidebar-border: oklch(0.25 0.05 280);
-  --sidebar-ring: oklch(0.65 0.2 280);
+  --background: oklch(0.11 0.02 270);
+  --foreground: oklch(0.94 0.01 260);
+
+  --card: oklch(0.15 0.025 270);
+  --card-foreground: oklch(0.94 0.01 260);
+
+  --popover: oklch(0.15 0.025 270);
+  --popover-foreground: oklch(0.94 0.01 260);
+
+  /* 🔥 Mantém identidade mas com glow controlado */
+  --primary: oklch(0.7 0.22 275);
+  --primary-foreground: oklch(0.12 0.02 270);
+
+  --secondary: oklch(0.22 0.04 270);
+  --secondary-foreground: oklch(0.9 0.01 260);
+
+  --muted: oklch(0.22 0.03 270);
+  --muted-foreground: oklch(0.65 0.05 270);
+
+  /* 💎 Accent mais vivo no dark (efeito neon suave) */
+  --accent: oklch(0.75 0.22 255);
+  --accent-foreground: oklch(0.12 0.02 270);
+
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.94 0.01 260);
+
+  --border: oklch(0.25 0.04 270);
+  --input: oklch(0.2 0.03 270);
+  --ring: oklch(0.7 0.22 275);
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

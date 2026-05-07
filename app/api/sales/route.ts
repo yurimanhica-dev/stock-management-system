@@ -1,110 +1,126 @@
-import { db } from '@/lib/db/client'
-import { sales, saleItems, products } from '@/lib/db/schema'
-import { eq, desc } from 'drizzle-orm'
-import { NextRequest, NextResponse } from 'next/server'
+import { db } from "@/lib/db/client";
+import { products, saleItems, sales } from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 // GET all sales with items
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const date = searchParams.get('date')
+    const allSales = await db
+      .select()
+      .from(sales)
+      .orderBy(desc(sales.saleDate));
 
-    let query = db.select().from(sales).orderBy(desc(sales.saleDate))
-
-    const allSales = await query
-
-    // Get items for each sale
     const salesWithItems = await Promise.all(
       allSales.map(async (sale) => {
         const items = await db
           .select()
           .from(saleItems)
-          .where(eq(saleItems.saleId, sale.id))
+          .where(eq(saleItems.saleId, sale.id));
 
-        return { ...sale, items }
-      })
-    )
+        return { ...sale, items };
+      }),
+    );
 
-    return NextResponse.json(salesWithItems)
+    return NextResponse.json(salesWithItems);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch sales' }, { status: 500 })
+    console.error("GET sales error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch sales" },
+      { status: 500 },
+    );
   }
 }
 
-// POST - Create a new sale with items
+// POST - Create sale (FIXED)
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { items, notes, userId } = body
+    const body = await request.json();
+    const { items, notes } = body;
 
-    if (!items || items.length === 0) {
+    if (!items?.length) {
       return NextResponse.json(
-        { error: 'Sale must have at least one item' },
-        { status: 400 }
-      )
+        { error: "Sale must have at least one item" },
+        { status: 400 },
+      );
     }
 
-    // Calculate total
+    // 💰 TOTAL
     const totalAmount = items.reduce(
-      (sum: number, item: any) => sum + parseFloat(item.subtotal),
-      0
-    )
+      (sum: number, item: any) => sum + Number(item.subtotal),
+      0,
+    );
 
-    // Create sale
+    // 🧾 CREATE SALE
     const newSale = await db
       .insert(sales)
       .values({
-        userId: userId || null,
-        totalAmount: totalAmount.toString(),
+        userId: null,
+        totalAmount: totalAmount.toFixed(2),
         notes: notes || null,
       })
-      .returning()
+      .returning();
 
-    const saleId = newSale[0].id
+    const saleId = newSale[0].id;
 
-    // Create sale items and update stock
+    // 🔥 PREPARE ALL ITEMS (CORRETO)
+    const saleItemsData = [];
+
     for (const item of items) {
-      // Create snapshot of product data
-      const snapshot = {
-        productId: item.productId,
-        productName: item.productName,
-        imageUrl: item.imageUrl,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        subtotal: item.subtotal,
-      }
-
-      await db.insert(saleItems).values({
-        saleId,
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: parseFloat(item.unitPrice),
-        subtotal: parseFloat(item.subtotal),
-        snapshot: snapshot as any,
-        notes: item.notes || null,
-      })
-
-      // Update product stock
       const product = await db
         .select()
         .from(products)
         .where(eq(products.id, item.productId))
+        .limit(1);
 
-      if (product[0]) {
-        const newStock = product[0].stockQuantity - item.quantity
-        await db
-          .update(products)
-          .set({ stockQuantity: newStock })
-          .where(eq(products.id, item.productId))
+      if (!product.length) continue;
+
+      const currentStock = product[0].stockQuantity;
+      const newStock = currentStock - item.quantity;
+
+      // 🚨 STOCK CHECK
+      if (newStock < 0) {
+        return NextResponse.json(
+          { error: `Stock insuficiente para ${item.productName}` },
+          { status: 400 },
+        );
       }
+
+      // snapshot
+      saleItemsData.push({
+        saleId,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toString(),
+        subtotal: item.subtotal.toString(),
+        snapshot: {
+          productId: item.productId,
+          productName: item.productName,
+          imageUrl: item.imageUrl ?? null,
+          unitPrice: Number(item.unitPrice),
+          quantity: item.quantity,
+          subtotal: Number(item.subtotal),
+        },
+        notes: item.notes || null,
+      });
+
+      // update stock
+      await db
+        .update(products)
+        .set({ stockQuantity: newStock })
+        .where(eq(products.id, item.productId));
     }
 
-    return NextResponse.json(newSale[0], { status: 201 })
+    // 🚀 SINGLE INSERT (CORRETO + sem overload error)
+    await db.insert(saleItems).values(saleItemsData);
+
+    return NextResponse.json(newSale[0], { status: 201 });
   } catch (error) {
-    console.error('Error creating sale:', error)
+    console.error("Error creating sale:", error);
+
     return NextResponse.json(
-      { error: 'Failed to create sale' },
-      { status: 500 }
-    )
+      { error: "Failed to create sale" },
+      { status: 500 },
+    );
   }
 }

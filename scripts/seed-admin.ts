@@ -27,41 +27,6 @@ async function seedAdmin() {
       )
     `
 
-    // Create event manager user
-    const manager = await sql`SELECT id FROM users WHERE email = 'manager@example.com'`
-
-    if (manager.length === 0) {
-      await sql`
-        INSERT INTO users (auth0_id, email, name, role, password, is_active)
-        VALUES (
-          'auth0|manager',
-          'manager@example.com',
-          'Gestor de Eventos',
-          'event_manager',
-          'manager123',
-          true
-        )
-      `
-    }
-
-    // Create sales person user
-    const sales = await sql`SELECT id FROM users WHERE email = 'sales@example.com'`
-
-    if (sales.length === 0) {
-      await sql`
-        INSERT INTO users (auth0_id, email, name, role, password, is_active)
-        VALUES (
-          'auth0|sales',
-          'sales@example.com',
-          'Vendedor',
-          'sales_person',
-          'sales123',
-          true
-        )
-      `
-    }
-
-    console.log('✓ Admin user created successfully!')
     console.log('Email: admin@example.com')
     console.log('Password: admin123')
     console.log('\nManager user created:')

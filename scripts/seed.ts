@@ -1,102 +1,191 @@
-import { neon } from '@neondatabase/serverless'
-import { drizzle } from 'drizzle-orm/neon-http'
-import * as schema from '../lib/db/schema'
+import { neon } from "@neondatabase/serverless";
+import "dotenv/config";
+import { drizzle } from "drizzle-orm/neon-http";
+import * as schema from "../lib/db/schema";
 
-const sql = neon(process.env.DATABASE_URL!)
-const db = drizzle(sql, { schema })
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql, { schema });
 
 async function seed() {
-  console.log('Starting seed...')
+  console.log("Starting seed...");
 
   try {
-    // Clear existing data
-    await sql`DELETE FROM sale_items`
-    await sql`DELETE FROM sales`
-    await sql`DELETE FROM products`
+    await sql`DELETE FROM sale_items`;
+    await sql`DELETE FROM sales`;
+    await sql`DELETE FROM products`;
 
-    // Insert sample products
     const products = await db
       .insert(schema.products)
       .values([
         {
-          name: 'Laptop Dell XPS 13',
-          sku: 'DELL-XPS-13-001',
-          description: 'Laptop ultraportátil de alta performance',
-          unitPrice: '999.99',
-          stockQuantity: 5,
+          name: "Água Mineral 1.5L",
+          sku: "AGUA-1500",
+          category: "Água",
+          unitPrice: "300",
+          stockQuantity: 100,
+          imageUrl:
+            "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&h=400&fit=crop",
+          description: "Água mineral natural em garrafa de 1.5 litros",
         },
         {
-          name: 'Mouse Logitech MX Master 3',
-          sku: 'LOG-MX-MASTER-3',
-          description: 'Mouse ergonômico para profissionais',
-          unitPrice: '99.99',
-          stockQuantity: 15,
+          name: "Coca-Cola 330ml",
+          sku: "COCA-330",
+          category: "Refrigerantes",
+          unitPrice: "75",
+          stockQuantity: 200,
+          imageUrl:
+            "https://images.unsplash.com/photo-1561758033-d89a9ad46330?w=400&h=400&fit=crop",
+          description: "Coca-Cola em lata de 330ml",
         },
         {
-          name: 'Teclado Mecânico RGB',
-          sku: 'KEY-RGB-MECH-001',
-          description: 'Teclado mecânico com iluminação RGB',
-          unitPrice: '149.99',
-          stockQuantity: 10,
+          name: "Coca-Cola 1.5L",
+          sku: "COCA-1500",
+          category: "Refrigerantes",
+          unitPrice: "180",
+          stockQuantity: 80,
+          imageUrl:
+            "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&h=400&fit=crop",
+          description: "Coca-Cola em garrafa de 1.5 litros",
         },
         {
-          name: 'Monitor LG 27" 4K',
-          sku: 'LG-MONITOR-27-4K',
-          description: 'Monitor 4K com suporte USB-C',
-          unitPrice: '499.99',
-          stockQuantity: 3,
+          name: "Sprite 330ml",
+          sku: "SPRITE-330",
+          category: "Refrigerantes",
+          unitPrice: "150",
+          stockQuantity: 180,
+          imageUrl:
+            "https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?w=400&h=400&fit=crop",
+          description: "Sprite em lata de 330ml",
         },
         {
-          name: 'Webcam Logitech C920',
-          sku: 'LOG-C920-WEBCAM',
-          description: 'Câmera Full HD para streaming',
-          unitPrice: '79.99',
-          stockQuantity: 8,
+          name: "Fanta Laranja 330ml",
+          sku: "FANTA-LAR",
+          category: "Refrigerantes",
+          unitPrice: "140",
+          stockQuantity: 160,
+          imageUrl:
+            "https://images.unsplash.com/photo-1638176066666-ffb2f013c7dd?w=400&h=400&fit=crop",
+          description: "Fanta Laranja em lata de 330ml",
         },
         {
-          name: 'Hub USB-C 7 em 1',
-          sku: 'HUB-USB-C-7IN1',
-          description: 'Hub multiportas para USB-C',
-          unitPrice: '59.99',
-          stockQuantity: 20,
+          name: "Sumo Natural Laranja",
+          sku: "SUMO-LAR",
+          category: "Sumos",
+          unitPrice: "200",
+          stockQuantity: 90,
+          imageUrl:
+            "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&h=400&fit=crop",
+          description: "Sumo natural de laranja 250ml",
+        },
+        {
+          name: "Sumo Natural Maçã",
+          sku: "SUMO-MACA",
+          category: "Sumos",
+          unitPrice: "200",
+          stockQuantity: 85,
+          imageUrl:
+            "https://images.unsplash.com/photo-1576673442511-7e39b6545c87?w=400&h=400&fit=crop",
+          description: "Sumo natural de maçã 250ml",
+        },
+        {
+          name: "Iced Coffee",
+          sku: "ICECOFFEE",
+          category: "Café",
+          unitPrice: "130",
+          stockQuantity: 120,
+          imageUrl:
+            "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&h=400&fit=crop",
+          description: "Café gelado pronto a beber 250ml",
+        },
+        {
+          name: "Chá Gelado Limão",
+          sku: "CHA-LIMAO",
+          category: "Chás",
+          unitPrice: "180",
+          stockQuantity: 110,
+          imageUrl:
+            "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop",
+          description: "Chá gelado com sabor de limão 330ml",
+        },
+        {
+          name: "Energético Red Bull",
+          sku: "REDBULL-250",
+          category: "Energéticos",
+          unitPrice: "150",
+          stockQuantity: 75,
+          imageUrl:
+            "https://images.unsplash.com/photo-1608614933920-7f0b4e6d6c31?w=400&h=400&fit=crop",
+          description: "Red Bull energético 250ml",
+        },
+        {
+          name: "Energético PowerAde",
+          sku: "POWERADE-500",
+          category: "Energéticos",
+          unitPrice: "200",
+          stockQuantity: 95,
+          imageUrl:
+            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop",
+          description: "PowerAde bebida desportiva 500ml",
+        },
+        {
+          name: "Cerveja Sagres 330ml",
+          sku: "SAGRES-330",
+          category: "Bebidas Alcoólicas",
+          unitPrice: "180",
+          stockQuantity: 200,
+          imageUrl:
+            "https://images.unsplash.com/photo-1618183479302-1e0aa382c36b?w=400&h=400&fit=crop",
+          description: "Cerveja Sagres em lata de 330ml",
+        },
+        {
+          name: "Vinho Branco",
+          sku: "VINHO-BRANCO",
+          category: "Bebidas Alcoólicas",
+          unitPrice: "500",
+          stockQuantity: 45,
+          imageUrl:
+            "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
+          description: "Vinho branco regional 750ml",
+        },
+        {
+          name: "Vinho Tinto",
+          sku: "VINHO-TINTO",
+          category: "Bebidas Alcoólicas",
+          unitPrice: "550",
+          stockQuantity: 50,
+          imageUrl:
+            "https://images.unsplash.com/photo-1510812431401-41d2cab2707d?w=400&h=400&fit=crop",
+          description: "Vinho tinto regional 750ml",
+        },
+        {
+          name: "Milkshake Morango",
+          sku: "MILKSHAKE-MOR",
+          category: "Bebidas Geladas",
+          unitPrice: "300",
+          stockQuantity: 60,
+          imageUrl:
+            "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=400&fit=crop",
+          description: "Milkshake de morango feito na hora 400ml",
+        },
+        {
+          name: "Smoothie Tropical",
+          sku: "SMOOTHIE-TROP",
+          category: "Bebidas Geladas",
+          unitPrice: "350",
+          stockQuantity: 70,
+          imageUrl:
+            "https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=400&h=400&fit=crop",
+          description: "Smoothie tropical com frutos exóticos 400ml",
         },
       ])
-      .returning()
+      .returning();
 
-    console.log(`✓ Inseridos ${products.length} produtos`)
-
-    // Insert sample sales
-    const sale = await db
-      .insert(schema.sales)
-      .values({
-        totalAmount: '1299.97',
-        notes: 'Venda de teste',
-      })
-      .returning()
-
-    // Insert sample sale items
-    await db.insert(schema.saleItems).values([
-      {
-        saleId: sale[0].id,
-        productId: products[0].id,
-        quantity: 1,
-        unitPrice: '999.99',
-        subtotal: '999.99',
-      },
-      {
-        saleId: sale[0].id,
-        productId: products[1].id,
-        quantity: 3,
-        unitPrice: '99.99',
-        subtotal: '299.97',
-      },
-    ])
-
-    console.log('✓ Dados de exemplo inseridos com sucesso!')
+    console.log(`✓ Inseridos ${products.length} produtos`);
+    console.log("✓ Seed concluído com sucesso!");
   } catch (error) {
-    console.error('Erro ao fazer seed:', error)
-    throw error
+    console.error("Erro ao fazer seed:", error);
+    throw error;
   }
 }
 
-seed()
+seed();

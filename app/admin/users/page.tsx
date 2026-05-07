@@ -1,10 +1,16 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AuthGuard } from "@/components/auth-guard";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -12,144 +18,139 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Trash2, Edit2, Plus, CheckCircle2, XCircle } from 'lucide-react'
-import { AuthGuard } from '@/components/auth-guard'
+} from "@/components/ui/table";
+import { AdminUsersSkeleton } from "@/components/users/admin-users-skeleton";
+import { CheckCircle2, Loader2, Plus, Trash2, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface User {
-  id: number
-  name: string
-  email: string
-  role: 'admin' | 'event_manager' | 'sales_person'
-  is_active: boolean
-  created_at: string
+  id: number;
+  clerk_id: string;
+  name: string;
+  email: string;
+  role: "admin" | "event_manager" | "sales_person";
+  status: "active" | "pending" | "disabled";
+  created_at: string;
 }
 
 function AdminUsersContent() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'sales_person' as const,
-  })
-  const router = useRouter()
+    name: "",
+    email: "",
+    role: "sales_person" as "admin" | "event_manager" | "sales_person",
+  });
+  const router = useRouter();
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users')
-
+      const response = await fetch("/api/admin/users");
       if (response.ok) {
-        const data = await response.json()
-        setUsers(data)
+        const data = await response.json();
+        setUsers(data);
       } else {
-        router.push('/login')
+        router.push("/sign-in");
       }
     } catch (error) {
-      console.error('Error fetching users:', error)
+      console.error("Error fetching users:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const token = localStorage.getItem('token')
-    if (!token) return
+    e.preventDefault();
+    setCreating(true);
 
     try {
-      const response = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+      // Clerk does not support creating users from the frontend directly.
+      // We call our API route which should use the Clerk Backend SDK server-side.
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // No Authorization header needed — Clerk session cookie is sent automatically
         body: JSON.stringify(formData),
-      })
+      });
 
-      if (response.ok) {
-        setFormData({ name: '', email: '', password: '', role: 'sales_person' })
-        setIsCreating(false)
-        await fetchUsers(token)
-      } else {
-        const data = await response.json()
-        alert(data.error || 'Erro ao criar utilizador')
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error("Erro ao criar utilizador", {
+          description: data?.error || "Falha no servidor",
+        });
+        return;
       }
+
+      toast.success("Utilizador criado com sucesso", {
+        description: data.email,
+      });
+
+      setFormData({ name: "", email: "", role: "sales_person" });
+      setIsCreating(false);
+      await fetchUsers();
     } catch (error) {
-      console.error('Error creating user:', error)
-      alert('Erro ao criar utilizador')
+      console.error(error);
+      toast.error("Erro inesperado", {
+        description: "Não foi possível criar o utilizador",
+      });
+    } finally {
+      setCreating(false);
     }
-  }
+  };
 
   const handleDelete = async (userId: number) => {
-    if (!confirm('Tem a certeza que quer deletar este utilizador?')) return
-
-    const token = localStorage.getItem('token')
-    if (!token) return
+    if (!confirm("Tem a certeza que quer deletar este utilizador?")) return;
 
     try {
-      const response = await fetch('/api/admin/users', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ id: userId }),
-      })
+      // Fix: pass id as query param to match the API route
+      const response = await fetch(`/api/admin/users?id=${userId}`, {
+        method: "DELETE",
+        // No Authorization header needed — Clerk session cookie is sent automatically
+      });
 
       if (response.ok) {
-        await fetchUsers(token)
+        setUsers((prev) => prev.filter((u) => u.id !== userId));
+        toast.success("Utilizador eliminado");
       } else {
-        alert('Erro ao deletar utilizador')
+        const data = await response.json().catch(() => ({}));
+        toast.error("Erro ao deletar utilizador", {
+          description: data?.error || "Falha no servidor",
+        });
       }
     } catch (error) {
-      console.error('Error deleting user:', error)
-      alert('Erro ao deletar utilizador')
+      console.error("Error deleting user:", error);
+      toast.error("Erro ao deletar utilizador");
     }
-  }
+  };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Carregando...</p>
-      </div>
-    )
-  }
+  if (loading) return <AdminUsersSkeleton />;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestão de Utilizadores</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Gestão de Utilizadores
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Criar, editar e gerenciar utilizadores do sistema
           </p>
         </div>
-        <Button
-          onClick={() => setIsCreating(true)}
-          className="bg-primary hover:bg-primary/90"
-        >
+        <Button onClick={() => setIsCreating(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Novo Utilizador
         </Button>
       </div>
 
-      {/* Criar novo utilizador */}
       {isCreating && (
         <Card className="border-primary/20">
           <CardHeader>
@@ -184,19 +185,6 @@ function AdminUsersContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Password</label>
-                  <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <label className="text-sm font-medium">Role</label>
                   <Select
                     value={formData.role}
@@ -209,12 +197,19 @@ function AdminUsersContent() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="event_manager">Gestor de Eventos</SelectItem>
+                      <SelectItem value="event_manager">
+                        Gestor de Eventos
+                      </SelectItem>
                       <SelectItem value="sales_person">Vendedor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              <p className="text-xs text-muted-foreground">
+                O utilizador receberá um convite por email para definir a sua
+                password via Clerk.
+              </p>
 
               <div className="flex gap-2 justify-end">
                 <Button
@@ -224,8 +219,15 @@ function AdminUsersContent() {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" className="bg-primary hover:bg-primary/90">
-                  Criar Utilizador
+                <Button type="submit" disabled={creating}>
+                  {creating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Criando...
+                    </>
+                  ) : (
+                    "Criar Utilizador"
+                  )}
                 </Button>
               </div>
             </form>
@@ -233,7 +235,6 @@ function AdminUsersContent() {
         </Card>
       )}
 
-      {/* Tabela de utilizadores */}
       <Card>
         <CardContent className="p-0">
           {users.length === 0 ? (
@@ -244,7 +245,7 @@ function AdminUsersContent() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-b border-border">
+                  <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
@@ -255,20 +256,20 @@ function AdminUsersContent() {
                 </TableHeader>
                 <TableBody>
                   {users.map((user) => (
-                    <TableRow key={user.id} className="border-b border-border">
+                    <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {user.role === 'admin'
-                            ? 'Admin'
-                            : user.role === 'event_manager'
-                              ? 'Gestor'
-                              : 'Vendedor'}
+                          {user.role === "admin"
+                            ? "Admin"
+                            : user.role === "event_manager"
+                              ? "Gestor"
+                              : "Vendedor"}
                         </span>
                       </TableCell>
                       <TableCell>
-                        {user.is_active ? (
+                        {user.status === "active" ? (
                           <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                             <CheckCircle2 className="w-4 h-4" />
                             <span className="text-sm">Ativo</span>
@@ -281,7 +282,7 @@ function AdminUsersContent() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(user.created_at).toLocaleDateString('pt-PT')}
+                        {new Date(user.created_at).toLocaleDateString("pt-PT")}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -302,7 +303,7 @@ function AdminUsersContent() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
 
 export default function AdminUsersPage() {
@@ -310,5 +311,5 @@ export default function AdminUsersPage() {
     <AuthGuard requiredRole="admin">
       <AdminUsersContent />
     </AuthGuard>
-  )
+  );
 }
