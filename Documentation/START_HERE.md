@@ -3,7 +3,7 @@
 ## 1. Instalar Dependências
 
 ```bash
-cd /vercel/share/v0-project
+cd /vercel/share/
 pnpm install
 ```
 
@@ -17,6 +17,7 @@ DATABASE_URL=postgresql://user:password@host:port/database
 ```
 
 Ou use Neon (recomendado):
+
 1. Crie um projeto em https://neon.tech
 2. Copie a connection string
 3. Coloque em `.env.local`
@@ -28,6 +29,7 @@ pnpm seed:admin
 ```
 
 Isso cria 3 utilizadores:
+
 - admin@example.com / admin123
 - manager@example.com / manager123
 - sales@example.com / sales123
@@ -60,18 +62,21 @@ Acesse: **http://localhost:3000**
 ## 7. Testar Funcionalidades
 
 ### Admin
+
 - Login como admin@example.com
 - Acessa /admin/users
 - Cria/edita/deleta utilizadores
 - Pode atribuir roles
 
 ### Manager
+
 - Login como manager@example.com
 - Vê produtos, pode criar
 - Registar vendas
 - Ver relatórios
 
 ### Sales Person
+
 - Login como sales@example.com
 - Pode registar vendas
 - NÃO vê relatórios nem admin
@@ -79,7 +84,7 @@ Acesse: **http://localhost:3000**
 ## Estrutura do Projeto
 
 ```
-/vercel/share/v0-project/
+/vercel/share/
 ├── app/
 │   ├── page.tsx                 # Dashboard (protegida)
 │   ├── login/page.tsx          # Login (pública)
@@ -177,18 +182,22 @@ pnpm seed
 ## Troubleshooting
 
 ### "DATABASE_URL not configured"
+
 - Crie `.env.local` com DATABASE_URL
 - Reinicie o servidor: `pnpm dev`
 
 ### "Utilizador não encontrado ao fazer login"
+
 - Rode `pnpm seed:admin` para criar utilizadores
 - Tente com admin@example.com / admin123
 
 ### "Redireciona para login indefinidamente"
+
 - Limpe localStorage: F12 → Application → Storage → Clear all
 - Faça login novamente
 
 ### "Página carrega em branco"
+
 - Verifique o console (F12)
 - Procure erros de autenticação
 - Verifique se DATABASE_URL está correto

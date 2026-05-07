@@ -19,14 +19,14 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm ci
 
       - name: Lint
-        run: npm run lint
+        run: pnpm run lint
         continue-on-error: true
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
 
       # - name: Run tests
       #   run: npm test
@@ -46,7 +46,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm ci
 
       - name: Build
-        run: npm run build
+        run: pnpm run build

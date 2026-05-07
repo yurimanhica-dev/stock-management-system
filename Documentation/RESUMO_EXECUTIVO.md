@@ -9,6 +9,7 @@ Um **sistema profissional de gestão de stock** com autenticação, múltiplos n
 ## 📌 Funcionalidades Principais
 
 ### 1. Sistema de Autenticação
+
 - Login com email e password
 - 3 níveis de acesso (Admin, Manager, Sales Person)
 - Sessões de 7 dias
@@ -16,6 +17,7 @@ Um **sistema profissional de gestão de stock** com autenticação, múltiplos n
 - **Rota de login protegida**: `/login`
 
 ### 2. Gestão de Utilizadores (Admin Only)
+
 - **Rota**: `/admin/users`
 - Criar, editar, deletar utilizadores
 - Atribuir roles e permissões
@@ -23,6 +25,7 @@ Um **sistema profissional de gestão de stock** com autenticação, múltiplos n
 - **Acesso**: Apenas Admin pode entrar
 
 ### 3. Dashboard com Gráficos
+
 - **Gráfico de Vendas por Hora**: Mostra vendas e receita em 24h
 - **Pie Chart**: Top 5 produtos vendidos
 - **Bar Chart**: Receita por produto
@@ -32,6 +35,7 @@ Um **sistema profissional de gestão de stock** com autenticação, múltiplos n
 - **Sem Conteúdo Extra**: Removido "Sobre" e "Tecnologia"
 
 ### 4. Gestão de Produtos
+
 - Criar novo produto com upload de imagem
 - Validação de SKU único em tempo real
 - Grid visual com fotos
@@ -39,6 +43,7 @@ Um **sistema profissional de gestão de stock** com autenticação, múltiplos n
 - Categoria e preço para cada produto
 
 ### 5. Registador de Vendas
+
 - Selecionador com preview do produto (foto grande)
 - Mostra preço, categoria e stock
 - Snapshot automático (congela dados do momento)
@@ -47,6 +52,7 @@ Um **sistema profissional de gestão de stock** com autenticação, múltiplos n
 - Identificação de vendedor
 
 ### 6. Relatórios Diários
+
 - Tabela de produtos vendidos com imagens
 - Quantidade e valor total por produto
 - Relatório de stock atual
@@ -70,18 +76,19 @@ Um **sistema profissional de gestão de stock** com autenticação, múltiplos n
 ## 🔐 Controle de Acesso
 
 | Funcionalidade | Admin | Manager | Sales |
-|---|:---:|:---:|:---:|
-| Dashboard | ✅ | ✅ | ✅ |
-| Produtos | ✅ | ✅ | ❌ |
-| Vendas | ✅ | ✅ | ✅ |
-| Relatórios | ✅ | ✅ | ❌ |
-| Admin Panel | ✅ | ❌ | ❌ |
+| -------------- | :---: | :-----: | :---: |
+| Dashboard      |  ✅   |   ✅    |  ✅   |
+| Produtos       |  ✅   |   ✅    |  ❌   |
+| Vendas         |  ✅   |   ✅    |  ✅   |
+| Relatórios     |  ✅   |   ✅    |  ❌   |
+| Admin Panel    |  ✅   |   ❌    |  ❌   |
 
 ---
 
 ## 🚀 Como Começar
 
 ### 1. Setup Rápido (5 minutos)
+
 ```bash
 # Instalar
 pnpm install
@@ -97,12 +104,14 @@ pnpm dev
 ```
 
 ### 2. Credenciais de Demo
+
 ```
 Email: admin@example.com
 Password: admin123
 ```
 
 ### 3. Acessar
+
 `http://localhost:3000/login`
 
 ---
@@ -137,17 +146,17 @@ Password: admin123
 
 ## 📋 Ficheiros Importantes
 
-| Ficheiro | Propósito |
-|---|---|
-| `app/login/page.tsx` | Página de login |
-| `app/page.tsx` | Dashboard com gráficos |
-| `app/admin/users/page.tsx` | Gestão de utilizadores |
-| `app/products/` | Produtos (criar, editar, listar) |
-| `app/sales/page.tsx` | Registador de vendas |
-| `app/api/auth/` | Login/logout APIs |
-| `app/api/admin/users/` | API de gestão de users |
-| `middleware.ts` | Proteção de rotas |
-| `.env.example` | Variáveis de ambiente |
+| Ficheiro                   | Propósito                        |
+| -------------------------- | -------------------------------- |
+| `app/login/page.tsx`       | Página de login                  |
+| `app/page.tsx`             | Dashboard com gráficos           |
+| `app/admin/users/page.tsx` | Gestão de utilizadores           |
+| `app/products/`            | Produtos (criar, editar, listar) |
+| `app/sales/page.tsx`       | Registador de vendas             |
+| `app/api/auth/`            | Login/logout APIs                |
+| `app/api/admin/users/`     | API de gestão de users           |
+| `middleware.ts`            | Proteção de rotas                |
+| `.env.example`             | Variáveis de ambiente            |
 
 ---
 
@@ -164,11 +173,13 @@ Password: admin123
 ## 📊 Dados de Exemplo
 
 ### Gráfico de Vendas (Demo)
+
 - 15 horas com dados (8h-22h)
 - Total: 291 vendas, €8,730 receita
 - Pico às 20h (28 vendas)
 
 ### Produtos (Bebidas)
+
 - Coca-Cola: 45 unidades
 - Água: 38 unidades
 - Suco: 32 unidades
@@ -193,6 +204,7 @@ Password: admin123
 ## 📞 Documentação Adicional
 
 Consulte os ficheiros para mais detalhes:
+
 - `AUTH_SETUP.md` - Setup de autenticação
 - `FINAL_IMPLEMENTATION.md` - Documentação técnica
 - `DEPLOYMENT.md` - Guia de deployment
@@ -224,6 +236,7 @@ Consulte os ficheiros para mais detalhes:
 **PRONTO PARA PRODUÇÃO** ✨
 
 O sistema está 100% funcional e pronto para:
+
 - Desenvolvimento local
 - Testing
 - Deployment em Vercel
@@ -243,5 +256,3 @@ O sistema está 100% funcional e pronto para:
 8. **Documentação** - Guides e APIs
 
 ---
-
-**Desenvolvido com v0 + Vercel**
