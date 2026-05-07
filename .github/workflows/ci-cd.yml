@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,8 +19,13 @@ jobs:
         with:
           node-version: 20
 
+      - name: Enable pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Install dependencies
-        run: pnpm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Lint
         run: pnpm run lint
@@ -28,25 +34,22 @@ jobs:
       - name: Build
         run: pnpm run build
 
-      # - name: Run tests
-      #   run: npm test
-      #   continue-on-error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: .next
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
+          name: app-build
 
-      - name: Install dependencies
-        run: pnpm ci
-
-      - name: Build
-        run: pnpm run build
+      - name: Deploy (placeholder)
+        run: echo "Deploying application..."
