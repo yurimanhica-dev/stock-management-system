@@ -8,54 +8,41 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      NEXT_TELEMETRY_DISABLED: 1
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 9
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-      - name: Enable pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+    - run: pnpm install --frozen-lockfile
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+    - name: Build
+      run: pnpm run build
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Lint
-        run: pnpm run lint
-        continue-on-error: true
-
-      - name: Build
-        run: pnpm run build
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-build
-          path: .next
+    - name: Upload artifact
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-build
+        path: .next
 
   deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      NEXT_TELEMETRY_DISABLED: 1
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  needs: build
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-build
+  steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: app-build
 
-      - name: Deploy (placeholder)
-        run: echo "Deploying application..."
+    - name: Deploy
+      run: echo "Deploying..."
