@@ -119,3 +119,51 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Toast Styling */
+@layer components {
+  .sonner-toaster {
+    @apply font-sans;
+  }
+
+  .sonner-toast {
+    @apply backdrop-blur-md shadow-lg border border-border/50;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .sonner-toast[data-type="success"] {
+    @apply bg-green-600 text-white border-green-600;
+  }
+
+  .sonner-toast[data-type="error"] {
+    @apply bg-red-600 text-white border-red-600;
+  }
+
+  .sonner-toast[data-type="warning"] {
+    @apply bg-amber-600 text-white border-amber-600;
+  }
+
+  .sonner-toast[data-type="info"],
+  .sonner-toast[data-type="loading"] {
+    @apply bg-blue-600 text-white border-blue-600;
+  }
+
+  .sonner-toast[data-type="default"] {
+    @apply bg-slate-900 text-white border-slate-700;
+  }
+
+  .sonner-content {
+    @apply flex items-center gap-3;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}

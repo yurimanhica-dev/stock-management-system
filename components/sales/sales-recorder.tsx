@@ -12,9 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Product } from "@/lib/db/schema";
-import { Package, Send, ShoppingCart, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Package, Send, ShoppingCart, X, CreditCard } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { MpesaPaymentModal } from "./mpesa-payment-modal";
 
 interface SaleItem {
   productId: string;
@@ -39,10 +40,14 @@ function ProductImage({
 }) {
   const [error, setError] = useState(false);
 
-  const dims =
-    size === "sm" ? "w-8 h-8" : size === "lg" ? "w-16 h-16" : "w-10 h-10";
-  const iconSize =
-    size === "sm" ? "w-3 h-3" : size === "lg" ? "w-7 h-7" : "w-4 h-4";
+  const dims = useMemo(
+    () => (size === "sm" ? "w-8 h-8" : size === "lg" ? "w-16 h-16" : "w-10 h-10"),
+    [size]
+  );
+  const iconSize = useMemo(
+    () => (size === "sm" ? "w-3 h-3" : size === "lg" ? "w-7 h-7" : "w-4 h-4"),
+    [size]
+  );
 
   if (!src || error) {
     return (
@@ -73,6 +78,8 @@ export function SalesRecorder() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [showMpesaModal, setShowMpesaModal] = useState(false);
+  const [lastSaleId, setLastSaleId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -88,43 +95,50 @@ export function SalesRecorder() {
     }
   };
 
-  // Group products by category
-  const groupedProducts = products.reduce(
-    (acc, product) => {
-      const category = product.category || "Sem categoria";
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(product);
-      return acc;
-    },
-    {} as Record<string, Product[]>,
+  // Group products by category (memoized)
+  const groupedProducts = useMemo(() => {
+    return products.reduce(
+      (acc, product) => {
+        const category = product.category || "Sem categoria";
+        if (!acc[category]) {
+          acc[category] = [];
+        }
+        acc[category].push(product);
+        return acc;
+      },
+      {} as Record<string, Product[]>,
+    );
+  }, [products]);
+
+  // Sort categories alphabetically (memoized)
+  const sortedCategories = useMemo(
+    () => Object.keys(groupedProducts).sort(),
+    [groupedProducts]
   );
 
-  // Sort categories alphabetically
-  const sortedCategories = Object.keys(groupedProducts).sort();
-
-  // Filter products based on search term
-  const filteredGroupedProducts = searchTerm
-    ? Object.entries(groupedProducts).reduce(
-        (acc, [category, categoryProducts]) => {
-          const filtered = categoryProducts.filter(
-            (p) =>
-              p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              p.sku.toLowerCase().includes(searchTerm.toLowerCase()),
-          );
-          if (filtered.length > 0) {
-            acc[category] = filtered;
-          }
-          return acc;
-        },
-        {} as Record<string, Product[]>,
-      )
-    : groupedProducts;
+  // Filter products based on search term (memoized)
+  const filteredGroupedProducts = useMemo(() => {
+    if (!searchTerm) return groupedProducts;
+    
+    return Object.entries(groupedProducts).reduce(
+      (acc, [category, categoryProducts]) => {
+        const filtered = categoryProducts.filter(
+          (p) =>
+            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.sku.toLowerCase().includes(searchTerm.toLowerCase()),
+        );
+        if (filtered.length > 0) {
+          acc[category] = filtered;
+        }
+        return acc;
+      },
+      {} as Record<string, Product[]>,
+    );
+  }, [groupedProducts, searchTerm]);
 
   const selectedProductData = products.find((p) => p.id === selectedProduct);
 
-  const handleAddItem = () => {
+  const handleAddItem = useCallback(() => {
     if (!selectedProduct || !quantity) return;
     const product = products.find((p) => p.id === selectedProduct);
     if (!product) return;
@@ -200,13 +214,13 @@ export function SalesRecorder() {
     setSelectedProduct("");
     setQuantity("1");
     setDiscountPercentage("");
-  };
+  }, [products, selectedProduct, quantity, discountPercentage, saleItems]);
 
-  const handleRemoveItem = (index: number) => {
-    setSaleItems(saleItems.filter((_, i) => i !== index));
-  };
+  const handleRemoveItem = useCallback((index: number) => {
+    setSaleItems((items) => items.filter((_, i) => i !== index));
+  }, []);
 
-  const handleSubmitSale = async () => {
+  const handleSubmitSale = useCallback(async () => {
     if (saleItems.length === 0) {
       toast.error("Nenhum item adicionado à venda");
       return;
@@ -225,17 +239,46 @@ export function SalesRecorder() {
       setSaleItems([]);
       setNotes("");
       toast.success("Venda registada com sucesso!");
-      await fetchProducts();
+      
+      // Store the sale ID to use in M-Pesa payment
+      setLastSaleId(data.saleId);
+      
+      // Show M-Pesa payment modal
+      setShowMpesaModal(true);
+      
+      // Reset form
+      setSaleItems([]);
+      setNotes("");
+      setSelectedProduct("");
+      setQuantity("1");
+      setDiscountPercentage("");
     } catch (error) {
       console.error(error);
       toast.error("Erro ao registar venda");
     } finally {
       setLoading(false);
     }
-  };
+  }, [saleItems, notes]);
 
-  const totalAmount = saleItems.reduce((sum, i) => sum + i.subtotal, 0);
-  const totalItems = saleItems.reduce((sum, i) => sum + i.quantity, 0);
+  const handlePaymentSuccess = useCallback(() => {
+    toast.success("Pagamento concluído com sucesso!");
+    setShowMpesaModal(false);
+    setLastSaleId(null);
+  }, []);
+
+  const { totalAmount, totalItems, totalWithoutDiscount, totalDiscount } = useMemo(() => {
+    const total = saleItems.reduce((sum, i) => sum + i.subtotal, 0);
+    const items = saleItems.reduce((sum, i) => sum + i.quantity, 0);
+    const withoutDiscount = saleItems.reduce(
+      (sum, i) => sum + i.quantity * i.unitPrice,
+      0
+    );
+    const discount = saleItems.reduce(
+      (sum, i) => sum + (i.discountAmount || 0),
+      0
+    );
+    return { totalAmount: total, totalItems: items, totalWithoutDiscount: withoutDiscount, totalDiscount: discount };
+  }, [saleItems]);
 
   return (
     <div className="space-y-6">
@@ -434,21 +477,16 @@ export function SalesRecorder() {
         </CardContent>
       </Card>
 
-      {/* Cart */}
+      {/* Sale Items Section */}
       {saleItems.length > 0 && (
         <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-medium">
-                Itens da Venda
-              </CardTitle>
-              <span className="text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full">
-                {totalItems} {totalItems === 1 ? "item" : "itens"}
-              </span>
-            </div>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-medium flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4" />
+              Itens da Venda ({totalItems})
+            </CardTitle>
           </CardHeader>
-
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {saleItems.map((item, i) => {
               const subtotalBeforeDiscount = item.quantity * item.unitPrice;
               return (
@@ -505,46 +543,69 @@ export function SalesRecorder() {
               );
             })}
 
-            {/* Total row */}
-            <div className="flex items-center justify-between pt-3 mt-1 border-t border-border">
-              <span className="text-sm font-medium text-muted-foreground">
-                Total
-              </span>
-              <span className="text-2xl font-bold tracking-tight">
-                {totalAmount.toFixed(2)}
-              </span>
+            {/* Summary */}
+            <div className="space-y-2 pt-3 border-t border-border/50 mt-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium">
+                  {totalWithoutDiscount.toFixed(2)} MZN
+                </span>
+              </div>
+              {totalDiscount > 0 && (
+                <div className="flex items-center justify-between text-sm text-green-600">
+                  <span className="text-muted-foreground">Desconto</span>
+                  <span className="font-medium">-{totalDiscount.toFixed(2)} MZN</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-lg font-bold pt-2 border-t border-border/50">
+                <span>Total</span>
+                <span>{totalAmount.toFixed(2)} MZN</span>
+              </div>
             </div>
 
-            <Button
-              onClick={handleSubmitSale}
-              disabled={loading}
-              className="w-full h-11 mt-2 text-sm font-medium"
-            >
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  A processar...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Finalizar Venda
-                </>
-              )}
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setSaleItems([])}
+                className="flex-1"
+              >
+                Limpar
+              </Button>
+              <Button
+                onClick={handleSubmitSale}
+                disabled={loading}
+                className="flex-1"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    A processar...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Finalizar Venda
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Empty state */}
-      {saleItems.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground border border-dashed border-border rounded-2xl">
-          <ShoppingCart className="w-10 h-10 mb-3 opacity-30" />
-          <p className="text-sm font-medium">Carrinho vazio</p>
-          <p className="text-xs mt-1 opacity-70">
-            Adicione productos para iniciar a venda
-          </p>
-        </div>
+      {/* M-Pesa Payment Modal */}
+      {lastSaleId && (
+        <MpesaPaymentModal
+          isOpen={showMpesaModal}
+          onClose={() => {
+            setShowMpesaModal(false);
+            setLastSaleId(null);
+          }}
+          saleId={lastSaleId}
+          amount={totalWithoutDiscount - totalDiscount}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
       )}
     </div>
   );
