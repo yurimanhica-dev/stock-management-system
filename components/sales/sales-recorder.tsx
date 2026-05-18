@@ -24,6 +24,8 @@ interface SaleItem {
   subtotal: number;
   imageUrl?: string;
   snapshot?: any;
+  discountPercentage?: number;
+  discountAmount?: number;
 }
 
 function ProductImage({
@@ -66,9 +68,11 @@ export function SalesRecorder() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("1");
+  const [discountPercentage, setDiscountPercentage] = useState<string>("");
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
     fetchProducts();
@@ -84,6 +88,40 @@ export function SalesRecorder() {
     }
   };
 
+  // Group products by category
+  const groupedProducts = products.reduce(
+    (acc, product) => {
+      const category = product.category || "Sem categoria";
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(product);
+      return acc;
+    },
+    {} as Record<string, Product[]>,
+  );
+
+  // Sort categories alphabetically
+  const sortedCategories = Object.keys(groupedProducts).sort();
+
+  // Filter products based on search term
+  const filteredGroupedProducts = searchTerm
+    ? Object.entries(groupedProducts).reduce(
+        (acc, [category, categoryProducts]) => {
+          const filtered = categoryProducts.filter(
+            (p) =>
+              p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              p.sku.toLowerCase().includes(searchTerm.toLowerCase()),
+          );
+          if (filtered.length > 0) {
+            acc[category] = filtered;
+          }
+          return acc;
+        },
+        {} as Record<string, Product[]>,
+      )
+    : groupedProducts;
+
   const selectedProductData = products.find((p) => p.id === selectedProduct);
 
   const handleAddItem = () => {
@@ -93,6 +131,7 @@ export function SalesRecorder() {
 
     const qty = parseInt(quantity);
     const price = Number(product.unitPrice);
+    const discount = discountPercentage ? parseFloat(discountPercentage) : 0;
 
     const existingQty = saleItems
       .filter((i) => i.productId === product.id)
@@ -103,7 +142,15 @@ export function SalesRecorder() {
       return;
     }
 
-    const subtotal = Number((qty * price).toFixed(2));
+    const subtotalBeforeDiscount = qty * price;
+    const discountAmount =
+      discount > 0
+        ? Number((subtotalBeforeDiscount * (discount / 100)).toFixed(2))
+        : 0;
+    const subtotal = Number(
+      (subtotalBeforeDiscount - discountAmount).toFixed(2),
+    );
+
     const existingIndex = saleItems.findIndex(
       (i) => i.productId === product.id,
     );
@@ -111,9 +158,17 @@ export function SalesRecorder() {
     if (existingIndex !== -1) {
       const updated = [...saleItems];
       updated[existingIndex].quantity += qty;
+      updated[existingIndex].discountPercentage = discount;
+      const newSubtotalBeforeDiscount =
+        updated[existingIndex].quantity * price;
+      const newDiscountAmount =
+        discount > 0
+          ? Number((newSubtotalBeforeDiscount * (discount / 100)).toFixed(2))
+          : 0;
       updated[existingIndex].subtotal = Number(
-        (updated[existingIndex].quantity * price).toFixed(2),
+        (newSubtotalBeforeDiscount - newDiscountAmount).toFixed(2),
       );
+      updated[existingIndex].discountAmount = newDiscountAmount;
       setSaleItems(updated);
     } else {
       const snapshot = {
@@ -123,6 +178,8 @@ export function SalesRecorder() {
         unitPrice: price,
         quantity: qty,
         subtotal,
+        discountPercentage: discount,
+        discountAmount,
       };
       setSaleItems([
         ...saleItems,
@@ -134,12 +191,15 @@ export function SalesRecorder() {
           subtotal,
           imageUrl: product.imageUrl || undefined,
           snapshot,
+          discountPercentage: discount,
+          discountAmount,
         },
       ]);
     }
 
     setSelectedProduct("");
     setQuantity("1");
+    setDiscountPercentage("");
   };
 
   const handleRemoveItem = (index: number) => {
@@ -148,7 +208,7 @@ export function SalesRecorder() {
 
   const handleSubmitSale = async () => {
     if (saleItems.length === 0) {
-      toast.success("Adicione itens à venda");
+      toast.error("Nenhum item adicionado à venda");
       return;
     }
     setLoading(true);
@@ -197,6 +257,18 @@ export function SalesRecorder() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Label className="text-xs text-muted-foreground">
+              Procurar Producto
+            </Label>
+            <Input
+              placeholder="Procure por nome ou SKU..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-10"
+            />
+          </div>
+
           <div className="flex gap-3 flex-wrap md:flex-nowrap">
             <div className="flex-1 min-w-[200px]">
               <Label className="text-xs text-muted-foreground mb-1.5 block">
@@ -209,18 +281,37 @@ export function SalesRecorder() {
                 <SelectTrigger className="h-10">
                   <SelectValue placeholder="Selecione um produto" />
                 </SelectTrigger>
-                <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <div className="flex items-center gap-2">
-                        <ProductImage src={p.imageUrl} alt={p.name} size="sm" />
-                        <span className="flex-1">{p.name}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          Stock: {p.stockQuantity}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                <SelectContent className="max-h-96">
+                  {Object.keys(filteredGroupedProducts).length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      Nenhum produto encontrado
+                    </div>
+                  ) : (
+                    Object.entries(filteredGroupedProducts).map(
+                      ([category, categoryProducts]) => (
+                        <div key={category}>
+                          <div className="sticky top-0 bg-background px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                            {category}
+                          </div>
+                          {categoryProducts.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              <div className="flex items-center gap-2">
+                                <ProductImage
+                                  src={p.imageUrl}
+                                  alt={p.name}
+                                  size="sm"
+                                />
+                                <span className="flex-1">{p.name}</span>
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  Stock: {p.stockQuantity}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </div>
+                      ),
+                    )
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -238,13 +329,33 @@ export function SalesRecorder() {
               />
             </div>
 
+            <div className="w-28 shrink-0">
+              <Label className="text-xs text-muted-foreground mb-1.5 block">
+                Desconto %
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={discountPercentage}
+                onChange={(e) => setDiscountPercentage(e.target.value)}
+                placeholder="0"
+                className="h-10 text-center"
+              />
+            </div>
+
             <div className="flex items-end">
               <Button
                 onClick={handleAddItem}
-                disabled={!selectedProduct}
+                disabled={!selectedProduct || loading}
                 className="h-10 px-5"
               >
-                Adicionar
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  "Adicionar"
+                )}
               </Button>
             </div>
           </div>
@@ -277,11 +388,33 @@ export function SalesRecorder() {
               {quantity && parseInt(quantity) > 0 && (
                 <div className="text-right shrink-0">
                   <p className="text-xs text-muted-foreground">Subtotal</p>
-                  <p className="text-lg font-semibold">
-                    {(
-                      parseInt(quantity) * Number(selectedProductData.unitPrice)
-                    ).toFixed(2)}
-                  </p>
+                  {discountPercentage && parseFloat(discountPercentage) > 0 ? (
+                    <div>
+                      <p className="text-xs text-muted-foreground line-through">
+                        {(
+                          parseInt(quantity) *
+                          Number(selectedProductData.unitPrice)
+                        ).toFixed(2)}
+                      </p>
+                      <p className="text-lg font-semibold text-green-600">
+                        {(
+                          parseInt(quantity) *
+                          Number(selectedProductData.unitPrice) *
+                          (1 - parseFloat(discountPercentage) / 100)
+                        ).toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {discountPercentage}% off
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-lg font-semibold">
+                      {(
+                        parseInt(quantity) *
+                        Number(selectedProductData.unitPrice)
+                      ).toFixed(2)}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -316,42 +449,61 @@ export function SalesRecorder() {
           </CardHeader>
 
           <CardContent className="space-y-2">
-            {saleItems.map((item, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-background hover:bg-muted/30 transition-colors group"
-              >
-                <ProductImage
-                  src={item.imageUrl}
-                  alt={item.productName}
-                  size="md"
-                />
-
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {item.productName}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {item.quantity} × {item.unitPrice.toFixed(2)}
-                  </p>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <p className="font-semibold text-sm">
-                    {item.subtotal.toFixed(2)}
-                  </p>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveItem(i)}
-                  className="w-7 h-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+            {saleItems.map((item, i) => {
+              const subtotalBeforeDiscount = item.quantity * item.unitPrice;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-background hover:bg-muted/30 transition-colors group"
                 >
-                  <X className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ))}
+                  <ProductImage
+                    src={item.imageUrl}
+                    alt={item.productName}
+                    size="md"
+                  />
+
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {item.productName}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {item.quantity} × {item.unitPrice.toFixed(2)}
+                    </p>
+                    {item.discountPercentage && item.discountPercentage > 0 && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Desconto: {item.discountPercentage.toFixed(1)}%
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    {item.discountPercentage && item.discountPercentage > 0 ? (
+                      <div>
+                        <p className="text-xs text-muted-foreground line-through">
+                          {subtotalBeforeDiscount.toFixed(2)}
+                        </p>
+                        <p className="font-semibold text-sm text-green-600">
+                          {item.subtotal.toFixed(2)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="font-semibold text-sm">
+                        {item.subtotal.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveItem(i)}
+                    className="w-7 h-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              );
+            })}
 
             {/* Total row */}
             <div className="flex items-center justify-between pt-3 mt-1 border-t border-border">
@@ -368,8 +520,17 @@ export function SalesRecorder() {
               disabled={loading}
               className="w-full h-11 mt-2 text-sm font-medium"
             >
-              <Send className="w-4 h-4 mr-2" />
-              {loading ? "A processar..." : "Finalizar Venda"}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  A processar...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Finalizar Venda
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
