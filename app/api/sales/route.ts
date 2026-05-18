@@ -93,6 +93,8 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
         unitPrice: item.unitPrice.toString(),
         subtotal: item.subtotal.toString(),
+        discountPercentage: (item.discountPercentage || 0).toString(),
+        discountAmount: (item.discountAmount || 0).toString(),
         snapshot: {
           productId: item.productId,
           productName: item.productName,
@@ -100,6 +102,8 @@ export async function POST(request: NextRequest) {
           unitPrice: Number(item.unitPrice),
           quantity: item.quantity,
           subtotal: Number(item.subtotal),
+          discountPercentage: item.discountPercentage || 0,
+          discountAmount: item.discountAmount || 0,
         },
         notes: item.notes || null,
       });
